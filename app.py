@@ -2,6 +2,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import sqlite3
+import os
+from functools import wraps
 
 app = Flask(__name__)
 
@@ -12,6 +14,7 @@ CORS(app, origins=[
 ])
 
 DB_NAME = "portfolio.db"
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 
 
 def create_database():
@@ -28,6 +31,37 @@ def create_database():
 
     connection.commit()
     connection.close()
+    def admin_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        password = request.headers.get("X-Admin-Password")
+
+        if not ADMIN_PASSWORD:
+            return jsonify({"error": "Admin password is not configured."}), 500
+
+        if password != ADMIN_PASSWORD:
+            return jsonify({"error": "Unauthorized access"}), 401
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@app.route("/api/admin/messages", methods=["GET"])
+@admin_required
+def get_messages():
+    connection = sqlite3.connect(DB_NAME)
+    connection.row_factory = sqlite3.Row
+
+    rows = connection.execute(
+        "SELECT id, name, email, message FROM messages ORDER BY id DESC"
+    ).fetchall()
+
+    connection.close()
+
+    messages = [dict(row) for row in rows]
+
+    return jsonify({"messages": messages})
 
 
 # Database तयार करा
