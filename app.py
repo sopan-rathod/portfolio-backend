@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import sqlite3
@@ -16,10 +15,8 @@ CORS(app, origins=[
 DB_NAME = "portfolio.db"
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 
-
 def create_database():
     connection = sqlite3.connect(DB_NAME)
-
     connection.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,83 +25,52 @@ def create_database():
             message TEXT NOT NULL
         )
     """)
-
     connection.commit()
     connection.close()
-    
-    def admin_required(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-                password = request.headers.get("X-Admin-Password")
 
-                if not ADMIN_PASSWORD:
-                    return jsonify({"error": "Admin password is not configured."}), 500
+def admin_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        password = request.headers.get("X-Admin-Password")
 
-                if password != ADMIN_PASSWORD:
-                    return jsonify({"error": "Unauthorized access"}), 401
+        if not ADMIN_PASSWORD:
+            return jsonify({"error": "Admin password is not configured."}), 500
 
-                return func(*args, **kwargs)
+        if password != ADMIN_PASSWORD:
+            return jsonify({"error": "Unauthorized access"}), 401
 
-        return wrapper
-
+        return func(*args, **kwargs)
+    return wrapper
 
 @app.route("/api/admin/messages", methods=["GET"])
 @admin_required
 def get_messages():
     connection = sqlite3.connect(DB_NAME)
     connection.row_factory = sqlite3.Row
-
-    rows = connection.execute(
-        "SELECT id, name, email, message FROM messages ORDER BY id DESC"
-    ).fetchall()
-
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM messages ORDER BY id DESC")
+    rows = cursor.fetchall()
     connection.close()
-
     messages = [dict(row) for row in rows]
-
-    return jsonify({"messages": messages})
-
-
-# Database तयार करा
-create_database()
-
-
-@app.route("/")
-def home():
-    return jsonify({
-        "message": "Portfolio Backend is running!"
-    })
-
-
-@app.route("/health")
-def health():
-    return jsonify({"status": "ok"})
-
+    return jsonify(messages)
 
 @app.route("/api/contact", methods=["POST"])
 def contact():
-    data = request.get_json(silent=True) or {}
-
-    name = str(data.get("name", "")).strip()
-    email = str(data.get("email", "")).strip()
-    message = str(data.get("message", "")).strip()
+    data = request.get_json()
+    name = data.get("name")
+    email = data.get("email")
+    message = data.get("message")
 
     if not name or not email or not message:
-        return jsonify({
-            "error": "Please fill in all required fields."
-        }), 400
+        return jsonify({"error": "All fields are required"}), 400
 
     connection = sqlite3.connect(DB_NAME)
-
-    connection.execute(
-        "INSERT INTO messages (name, email, message) VALUES (?, ?, ?)",
-        (name, email, message)
-    )
-
+    connection.execute("INSERT INTO messages (name, email, message) VALUES (?, ?, ?)",
+                       (name, email, message))
     connection.commit()
     connection.close()
+    return jsonify({"success": True, "message": "Message saved"}), 200
 
-    return jsonify({
-        "message": "Your message has been saved successfully!"
-    }), 201
-
+if __name__ == "__main__":
+    create_database()
+    app.run(debug=True)
