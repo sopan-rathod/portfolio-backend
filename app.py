@@ -31,6 +31,7 @@ def create_database():
 
     connection.commit()
     connection.close()
+    
     def admin_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
