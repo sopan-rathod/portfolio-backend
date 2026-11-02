@@ -1,6 +1,6 @@
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import os
 import sqlite3
 
 app = Flask(__name__)
@@ -16,6 +16,7 @@ DB_NAME = "portfolio.db"
 
 def create_database():
     connection = sqlite3.connect(DB_NAME)
+
     connection.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,9 +25,14 @@ def create_database():
             message TEXT NOT NULL
         )
     """)
+
     connection.commit()
     connection.close()
-   create_database()
+
+
+# Database तयार करा
+create_database()
+
 
 @app.route("/")
 def home():
@@ -54,10 +60,12 @@ def contact():
         }), 400
 
     connection = sqlite3.connect(DB_NAME)
+
     connection.execute(
         "INSERT INTO messages (name, email, message) VALUES (?, ?, ?)",
         (name, email, message)
     )
+
     connection.commit()
     connection.close()
 
@@ -65,7 +73,3 @@ def contact():
         "message": "Your message has been saved successfully!"
     }), 201
 
-
-if __name__ == "__main__":
-    create_database()
-    app.run(debug=True, port=5000)
