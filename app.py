@@ -33,19 +33,19 @@ def create_database():
     connection.close()
     
     def admin_required(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        password = request.headers.get("X-Admin-Password")
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+                password = request.headers.get("X-Admin-Password")
 
-        if not ADMIN_PASSWORD:
-            return jsonify({"error": "Admin password is not configured."}), 500
+                if not ADMIN_PASSWORD:
+                    return jsonify({"error": "Admin password is not configured."}), 500
 
-        if password != ADMIN_PASSWORD:
-            return jsonify({"error": "Unauthorized access"}), 401
+                if password != ADMIN_PASSWORD:
+                    return jsonify({"error": "Unauthorized access"}), 401
 
-        return func(*args, **kwargs)
+                return func(*args, **kwargs)
 
-    return wrapper
+        return wrapper
 
 
 @app.route("/api/admin/messages", methods=["GET"])
