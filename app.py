@@ -56,6 +56,7 @@ def admin_required(func):
 @app.route("/api/admin/messages", methods=["GET"])
 @admin_required
 def get_messages():
+    create_database()
     connection = sqlite3.connect(DB_NAME)
     connection.row_factory = sqlite3.Row
     cursor = connection.cursor()
