@@ -27,6 +27,17 @@ def create_database():
     """)
     connection.commit()
     connection.close()
+    create_database()
+
+@app.route("/")
+def home():
+    return jsonify({
+        "message": "Portfolio Backend is running!"
+    })
+
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"})
 
 def admin_required(func):
     @wraps(func)
@@ -73,4 +84,4 @@ def contact():
 
 if __name__ == "__main__":
     create_database()
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
